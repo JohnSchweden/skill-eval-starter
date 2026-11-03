@@ -29,7 +29,7 @@ Prompts that pass every run   with: 2/2 (100%)   without: 0/2 (0%)
 Skill fired when it should    3/3
 ```
 
-## Test your own skill (12 minutes)
+## Test your own skill (15 minutes)
 
 ```bash
 cp -r template mine
@@ -48,7 +48,7 @@ cp -r template mine
    | `must_match REGEX` | `must_match ^Subject:` |
    | `must_not_match REGEX` | `must_not_match —` |
 4. **Run it** (5 min): `python3 eval.py mine/ --cmd "claude -p"` (or your CLI / API).
-5. **Read the score** (1 min). Then open `mine/runs/<time>/` and read the outputs: a number you haven't looked behind is a guess.
+5. **Read the score** (2 min). Then open `mine/runs/<time>/` and read the outputs: a number you haven't looked behind is a guess.
 
 ## Three ways the score fools you
 
