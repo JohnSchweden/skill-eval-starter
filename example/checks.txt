@@ -1,0 +1,4 @@
+# One rule per line. Checked on every prompt where the skill should fire.
+must_match ^(feat|fix|docs|refactor|test|chore)(\([a-z-]+\))?: [a-z]
+must_not_match \.$
+max_chars 72

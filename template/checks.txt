@@ -1,0 +1,6 @@
+# One rule per line. Pick what your skill promises and write it as a rule.
+# max_words 200
+# max_chars 280
+# must_match ^Subject:
+# must_not_match —
+# must_not_match #\w+

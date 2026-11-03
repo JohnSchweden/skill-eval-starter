@@ -1,0 +1,4 @@
+id,should_trigger,prompt
+names-it,true,"A request that names the skill"
+describes-it,true,"A request that only describes the job, without naming the skill"
+stay-off,false,"A request close to the skill's topic where it must NOT fire"
