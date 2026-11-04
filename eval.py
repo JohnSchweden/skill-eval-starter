@@ -133,6 +133,7 @@ def main():
     # Per row and arm: did every rep pass? Trigger rows are scored on the rules,
     # no-trigger rows on staying off (the skill must not fire).
     table, score = [], {"with": [0, 0], "without": [0, 0]}
+    runs = {"with": [0, 0], "without": [0, 0]}  # finer number: single runs that pass, on trigger rows
     trigger_ok = trigger_n = 0
     for row in rows:
         line = [row["id"], "on" if row["should_trigger"] else "off"]
@@ -161,6 +162,8 @@ def main():
             if row["should_trigger"]:
                 score[arm][0] += all_pass
                 score[arm][1] += 1
+                runs[arm][0] += sum(passes)
+                runs[arm][1] += len(passes)
             line.append(f"{sum(passes)}/{len(passes)}")
         table.append(line)
 
@@ -170,14 +173,16 @@ def main():
         print(f"{i:<14}{kind:<7}{w:>6}{wo:>9}")
     pct = lambda a: f"{score[a][0]}/{score[a][1]}" + (f" ({100 * score[a][0] // score[a][1]}%)" if score[a][1] else "")
     print(f"\nPrompts that pass every run   with: {pct('with')}   without: {pct('without')}")
+    print(f"Runs that pass                with: {runs['with'][0]}/{runs['with'][1]}   without: {runs['without'][0]}/{runs['without'][1]}")
     print(f"Skill fired when it should    {trigger_ok}/{trigger_n}")
     print(f"Outputs in {outdir}/")
 
     with open(args.folder / "results.tsv", "a") as f:
         if f.tell() == 0:
-            f.write("time\tskill_sha\tbackend\treps\twith\twithout\ttrigger\n")
+            f.write("time\tskill_sha\tbackend\treps\twith\twithout\twith_runs\twithout_runs\ttrigger\n")
         f.write(f"{stamp}\t{hashlib.sha1(skill.encode()).hexdigest()[:7]}\t{backend}\t{args.reps}\t"
-                f"{score['with'][0]}/{score['with'][1]}\t{score['without'][0]}/{score['without'][1]}\t{trigger_ok}/{trigger_n}\n")
+                f"{score['with'][0]}/{score['with'][1]}\t{score['without'][0]}/{score['without'][1]}\t"
+                f"{runs['with'][0]}/{runs['with'][1]}\t{runs['without'][0]}/{runs['without'][1]}\t{trigger_ok}/{trigger_n}\n")
 
 
 if __name__ == "__main__":
