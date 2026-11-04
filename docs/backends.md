@@ -49,6 +49,16 @@ python3 eval.py examples/post-writer --model gpt-4o-mini
 
 OpenRouter reaches most providers with one key. Ollama (`http://localhost:11434/v1`) and LM Studio run locally; Anthropic and Gemini also offer OpenAI-compatible endpoints.
 
+## Or let your coding agent run it
+
+```text
+Read README.md and docs/backends.md in this repo. Run eval.py on
+examples/post-writer and on examples/humanizer with --cmd set to the line
+for the CLI you are running in. For each example, show me the table,
+then open one failing output from runs/ and tell me whether the skill or
+the test is at fault. Do not edit any file.
+```
+
 ## Check your line first
 
 Before a full run, send one prompt by hand and look at the output:

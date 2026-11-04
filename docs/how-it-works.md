@@ -66,3 +66,10 @@ Skill fired right               -        4/4        4/4   on when it should be, 
 ## What this does not test
 
 This tests the skill text and its script, not your agent's own skill loader. To test the loader too, remove the skill from your agent's skills folder for the baseline run. A disable flag isn't enough: the agent can still find the file.
+
+## Sources
+
+- OpenAI, [Testing agent skills systematically with evals](https://developers.openai.com/blog/eval-skills): the `id,should_trigger,prompt` set
+- Anthropic, [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents): code graders vs. model graders, pass@k vs. pass^k
+- Andrej Karpathy, [autoresearch](https://github.com/karpathy/autoresearch): the agent edits the code, never the eval
+- Andrew Ng, [The Batch, issue 297](https://www.deeplearning.ai/the-batch/issue-297/): start evals early with a handful of examples
