@@ -12,13 +12,25 @@ git clone https://github.com/JohnSchweden/skill-eval-starter && cd skill-eval-st
 
 ## 2. Run the post writer and the humanizer
 
+Set your agent (Claude Code):
+
 ```bash
 AGENT='claude -p --model haiku --tools "" --setting-sources "" --system-prompt "Answer the request."'
-python3 eval.py examples/post-writer --cmd "$AGENT"
-python3 eval.py examples/humanizer   --cmd "$AGENT"
 ```
 
 Not on Claude Code? Take your CLI's `AGENT=` line from [docs/backends.md](docs/backends.md) (Codex, Gemini, opencode, Cursor, Copilot, Ollama) or use an API key.
+
+Run the post writer:
+
+```bash
+python3 eval.py examples/post-writer --cmd "$AGENT"
+```
+
+Run the humanizer:
+
+```bash
+python3 eval.py examples/humanizer --cmd "$AGENT"
+```
 
 About 25 small calls per example: a minute or two, about one cent with the line above.
 
@@ -45,7 +57,7 @@ Runs that pass              0/3        3/3        3/3   all checks
 
 **Bring back three numbers per example:** no skill __ · skill __ · skill + check __
 
-## Tonight: test your own skill
+## Homework: test your own skill
 
 ```bash
 cp -r template mine
