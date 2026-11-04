@@ -127,7 +127,7 @@ def run_script(script, text):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("folder", type=Path, help="skill folder (SKILL.md, prompts.csv, checks.txt, optional scripts/check.py)")
-    ap.add_argument("--cmd", help='CLI that reads a prompt on stdin, e.g. "claude -p"')
+    ap.add_argument("--cmd", help='CLI that reads a prompt on stdin, e.g. "claude -p" (lines per CLI: docs/backends.md)')
     ap.add_argument("--model", default=os.environ.get("EVAL_MODEL", "gpt-4o-mini"), help="model for the API backend")
     ap.add_argument("--reps", type=int, default=1, help="runs per prompt and stage (default 1; use 3 before you decide)")
     ap.add_argument("--workers", type=int, default=4, help="calls in parallel (default 4)")
