@@ -27,6 +27,8 @@ Each example folder holds:
 | `prompts.csv` | four test requests: three where the skill should fire, one where it must stay off | never |
 | `checks.txt` | the test rules: code rules, plus one yes/no question for an AI judge | never |
 
+**The test** is `prompts.csv` + `checks.txt` in each example folder. **The eval** is `eval.py` running that test against the three stages; its results land in `runs/<time>/` (every answer, with its verdict) and `results.tsv` (one line per run). `scripts/check.py` belongs to the skill, not the test: it may change, the test may not.
+
 ## At the workshop (15 minutes)
 
 You don't write anything. Clone, run both examples, read the results.
@@ -34,9 +36,12 @@ You don't write anything. Clone, run both examples, read the results.
 ```bash
 git clone https://github.com/JohnSchweden/skill-eval-starter && cd skill-eval-starter
 
-python3 eval.py examples/post-writer --cmd "claude -p"
-python3 eval.py examples/humanizer   --cmd "claude -p"
+CLAUDE='claude -p --model haiku --tools "" --setting-sources "" --system-prompt "Answer the request."'
+python3 eval.py examples/post-writer --cmd "$CLAUDE"
+python3 eval.py examples/humanizer   --cmd "$CLAUDE"
 ```
+
+The extra flags keep Claude Code's own system prompt, tools, hooks and settings out of the call. Without them each call carries about 22,000 tokens of Claude Code instead of about 1,000, and the "no skill" stage isn't bare: it runs with your setup (see [Cost](#cost)).
 
 Any CLI that reads a prompt on stdin and prints the answer works (`--cmd "codex exec"`, `--cmd "ollama run llama3.2"`). Or any OpenAI-compatible API (OpenAI, OpenRouter, Ollama, LM Studio, Anthropic, Gemini):
 
@@ -46,14 +51,14 @@ export OPENAI_BASE_URL=https://openrouter.ai/api/v1   # leave unset for OpenAI
 python3 eval.py examples/post-writer --model gpt-4o-mini
 ```
 
-Each run makes about 70 small calls (3 runs per request and stage, plus judge calls and script fixes) and takes a few minutes. In a hurry: `--reps 1`.
+Each example makes about 25 small calls (one run per request and stage, plus judge calls and script fixes) and takes a minute or two. Compare your numbers with your neighbour's: same test, different numbers is the noise.
 
 Or hand it to your coding agent:
 
 ```text
 Read README.md in this repo. Run eval.py on examples/post-writer and on
 examples/humanizer with --cmd set to the CLI you are running in
-(for Claude Code: --cmd "claude -p"). For each example, show me the table,
+(for Claude Code, the --cmd "$CLAUDE" line from the README). For each example, show me the table,
 then open one failing output from runs/ and tell me whether the skill or
 the test is at fault. Do not edit any file.
 ```
@@ -103,7 +108,7 @@ Skill fired right               -        4/4        4/4   on when it should be, 
 
 **Deterministic vs. AI.** Everything a rule can decide belongs in code: in the test (`checks.txt`) and in the check script (`scripts/check.py`). That frees the skill text from rules the model may forget, and leaves it with the part only a model can do: the verdict, the wording, keeping the facts. The judge measures that part, but it can be wrong. Before you trust a judge, compare it with your own verdict on about six outputs.
 
-**Noise.** The same request gives different answers each run. A skill that passes 75% of the time passes three runs in a row only 42% of the time. That's why the default is `--reps 3`. Small differences mean nothing until you add requests or runs.
+**Noise.** The same request gives different answers each run. A skill that passes 75% of the time passes three runs in a row only 42% of the time. The default is one run (`--reps 1`): enough to see the shape. Before you decide to keep a change, run `--reps 3`. Small differences mean nothing until you add requests or runs.
 
 ## Three ways the score fools you
 
@@ -123,7 +128,7 @@ cp -r template mine
 2. **Requests**: three to five real requests in `mine/prompts.csv`. At least one names the skill, one only describes the job, and one is close to its topic but must stay off.
 3. **Rules**: in `mine/checks.txt`, write what your skill promises: code rules for what code can decide, one `judge` question for what it can't. A good source is your own corrections: every output you fixed by hand is a rule or a request.
 4. **Script** (optional): move the code rules your skill should enforce into `mine/scripts/check.py`. Without the folder, the skill+check stage is skipped.
-5. **Run**: `python3 eval.py mine --cmd "claude -p"`.
+5. **Run**: `python3 eval.py mine --cmd "$CLAUDE"`, then `--reps 3` before you decide anything.
 6. **Improve**: change `SKILL.md` or the script, run again, keep the change only if "Runs that pass" went up. `results.tsv` keeps a line per run with a hash of the skill and script. Your agent may edit the skill and the script, never `prompts.csv` or `checks.txt`. An agent that may change the test will make the test easier, not the skill better.
 
 Start small: five requests with an imperfect rule beat no test (Andrew Ng). Grow toward 10 to 20 from real failures (OpenAI).
@@ -133,6 +138,24 @@ Start small: five requests with an imperfect rule beat no test (Andrew Ng). Grow
 The skill and skill+check stages give the model `SKILL.md` as a system prompt. They ask it to write `[skill used]` on the first line when it applies the skill, which makes triggering visible on any model. The marker is stripped before the rules run. CLI runs happen in an empty temp folder, so the agent can't read the skill from disk. Rules are only checked on requests where the skill should fire; the stay-off request passes when the skill stays off. The judge uses the same backend as the run. Outputs go to `<folder>/runs/<time>/`, and one summary line per run is appended to `<folder>/results.tsv`.
 
 This tests the skill text and its script, not your agent's own skill loader. To test the loader too, remove the skill from your agent's skills folder for the baseline run. A disable flag isn't enough: the agent can still find the file.
+
+## Cost
+
+Measured 2026-11-05 on `claude-haiku` through `claude -p`, one call writing a post from `examples/post-writer`:
+
+| Command | Input tokens | Output tokens | Cost per call |
+|---|---|---|---|
+| `claude -p --model haiku` | about 21,900 | about 890 | $0.0035 |
+| `$CLAUDE` (the slim line above) | about 955 | about 430 | $0.0004 |
+
+About 95% of a plain `claude -p` call is Claude Code itself: its system prompt, tool definitions, your settings and hooks. The skill and request are about 400 tokens.
+
+| Run (both examples) | Calls | Tokens with `$CLAUDE` | Cost |
+|---|---|---|---|
+| `--reps 1` (default) | about 50 | about 70,000 | about $0.02 |
+| `--reps 3` | about 140 | about 195,000 | about $0.06 |
+
+Calls per example: 4 requests × 3 stages × reps answers, plus 3 × 3 × reps judge calls, plus up to 2 script fixes per answer in the skill+check stage.
 
 ## Sources
 

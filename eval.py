@@ -11,7 +11,7 @@
 Usage:
   python3 eval.py examples/post-writer --cmd "claude -p"   # any CLI that reads the prompt on stdin
   python3 eval.py examples/humanizer --model gpt-4o-mini   # or an OpenAI-compatible API
-  python3 eval.py examples/post-writer --reps 3            # runs per prompt and stage (default 3)
+  python3 eval.py examples/post-writer --reps 3            # runs per prompt and stage (default 1)
 
 A skill folder holds:
   SKILL.md           the instruction text (any skill or system prompt)
@@ -129,7 +129,7 @@ def main():
     ap.add_argument("folder", type=Path, help="skill folder (SKILL.md, prompts.csv, checks.txt, optional scripts/check.py)")
     ap.add_argument("--cmd", help='CLI that reads a prompt on stdin, e.g. "claude -p"')
     ap.add_argument("--model", default=os.environ.get("EVAL_MODEL", "gpt-4o-mini"), help="model for the API backend")
-    ap.add_argument("--reps", type=int, default=3, help="runs per prompt and stage (default 3)")
+    ap.add_argument("--reps", type=int, default=1, help="runs per prompt and stage (default 1; use 3 before you decide)")
     ap.add_argument("--workers", type=int, default=4, help="calls in parallel (default 4)")
     args = ap.parse_args()
 
