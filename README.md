@@ -4,6 +4,22 @@ Did your agent actually get better? Test any skill with it and without it, on wh
 
 A skill is instruction text your agent loads: a `SKILL.md`, a system prompt, an n8n AI-node prompt, a LangGraph node prompt. This repo runs that text against three of your prompts, once with the skill and once without, and checks the answers against rules you write. No dependencies beyond Python 3.9.
 
+## At the workshop: go at your own pace
+
+You have 15 minutes. Do the steps below yourself, or hand them to your coding agent (Claude Code, Codex, Cursor, …) with this prompt:
+
+```text
+Read README.md in this repo and follow "Test your own skill" for me.
+My skill: <path to your SKILL.md or system prompt file, or paste it here>.
+Copy template/ to mine/, put the skill in mine/SKILL.md, write the three
+prompts and one rule the README asks for, then run eval.py with the CLI
+you are running in (for Claude Code: --cmd "claude -p").
+Show me the score and the output of one failing run, and tell me whether
+the skill or the rule is at fault. Do not edit eval.py.
+```
+
+At the end, bring back two numbers: **with the skill __ · without __**.
+
 ## Try the example (2 minutes)
 
 ```bash
@@ -53,7 +69,7 @@ cp -r template mine
 ## Three ways the score fools you
 
 - **No baseline.** If the skill and no skill both pass, the skill adds nothing for that prompt, or the test is too easy. Make the prompt harder or cut that part of the skill.
-- **The test is wrong.** A rule your skill no longer promises makes a good skill lose. Before you trust a result, read one failing output and ask: is the skill wrong, or the rule?
+- **The test is wrong.** A rule your skill no longer promises makes a good skill lose. Before you trust a result, read one failing output and ask: is the skill wrong, or the rule? Example: a humanizer skill lost to no skill on the rule "no buzzwords". Its rewrite was clean, but it added a "Changes:" note quoting the buzzwords it had cut, and the rule checks the whole answer.
 - **One run is noise.** A skill that passes 75% of the time passes three runs in a row only 42% of the time. Run `--reps 3` before you believe a difference, and count a prompt only when every run passes.
 
 ## Then: let the agent improve the skill, but never the test
