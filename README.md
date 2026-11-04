@@ -1,9 +1,11 @@
 # skill-eval-starter
 
-Did your agent actually get better? Run a skill three ways and compare: without it, with it, and as a plugin.
+Did your agent actually get better? Run a skill three ways and compare: without it, with it, and with a check that always runs.
 
-- **Skill**: instruction text your agent loads (`SKILL.md`, a system prompt, an n8n or LangGraph node prompt).
-- **Plugin**: the same text plus a script that checks the answer in code. The model fixes what the script finds.
+- **Skill text**: the instructions your agent loads (`SKILL.md`, a system prompt, an n8n or LangGraph node prompt). The model may follow them, or not.
+- **Skill + check**: the same text plus a script that checks every answer in code, like a hook. The model fixes what the script finds.
+
+A note on words: a skill folder can already hold code (`scripts/`), docs (`references/`) and templates (`assets/`), per the [Agent Skills spec](https://agentskills.io/specification). But the model decides whether to run that code. A Claude Code **plugin** is a package around skills that can add **hooks**: code that runs every time, whether the model wants it or not. The third stage here tests that idea, "code that always runs", without needing a plugin.
 
 No dependencies beyond Python 3.9.
 
@@ -21,7 +23,7 @@ Each example folder holds:
 | File | What it is | Changes? |
 |---|---|---|
 | `SKILL.md` | the skill text: the part only a model can do | yes, this is what you improve |
-| `scripts/check.py` | the plugin's script: the part code can do | yes |
+| `scripts/check.py` | the check script: the part code can do | yes |
 | `prompts.csv` | four test requests: three where the skill should fire, one where it must stay off | never |
 | `checks.txt` | the test rules: code rules, plus one yes/no question for an AI judge | never |
 
@@ -56,14 +58,14 @@ then open one failing output from runs/ and tell me whether the skill or
 the test is at fault. Do not edit any file.
 ```
 
-**Bring back three numbers per example** ("Runs that pass"): **no skill __ · skill __ · plugin __**
+**Bring back three numbers per example** ("Runs that pass"): **no skill __ · skill __ · skill + check __**
 
 ### What the output looks like
 
 One run per request (`--reps 1`) of the post writer on `claude -p --model haiku`:
 
 ```
-prompt          skill    no skill      skill     plugin
+prompt          skill    no skill      skill skill+check
 agent-eval      on            0/1        1/1        1/1
 meeting-notes   on            0/1        1/1        1/1
 first-talk      on            0/1        1/1        1/1
@@ -78,8 +80,8 @@ Skill fired right               -        4/4        4/4   on when it should be, 
 ### What to look at
 
 1. **No skill vs. skill.** Does the skill add anything? If no skill already passes, the skill does nothing for that request, or the test is too easy.
-2. **Skill vs. plugin on "Code checks pass".** The script catches what code can check, and the model fixes it. Here the plugin should get close to 100%.
-3. **Skill vs. plugin on "Judge says yes".** The script can't help here: whether facts were kept or invented is not something code can decide. Only the skill text moves this number.
+2. **Skill vs. skill+check on "Code checks pass".** The script catches what code can check, and the model fixes it. Here skill+check should get close to 100%.
+3. **Skill vs. skill+check on "Judge says yes".** The script can't help here: whether facts were kept or invented is not something code can decide. Only the skill text moves this number.
 4. **Open one output** in `examples/<name>/runs/<time>/`. Each file starts with its verdict. A number you haven't looked behind is a guess.
 
 ## The three stages
@@ -88,7 +90,7 @@ Skill fired right               -        4/4        4/4   on when it should be, 
 |---|---|---|
 | no skill | the bare request | what the model does anyway: your baseline |
 | skill | the request + `SKILL.md` as system prompt | what the text adds |
-| plugin | the same, then `scripts/check.py` checks the answer; the model fixes the findings, at most twice | what code adds on top of the text |
+| skill+check | the same, then `scripts/check.py` checks every answer; the model fixes the findings, at most twice | what code adds on top of the text |
 
 ## What can be measured, and how
 
@@ -99,7 +101,7 @@ Skill fired right               -        4/4        4/4   on when it should be, 
 | Facts kept, nothing invented, tone, "does it answer the question" | an AI judge (`judge <question>` in `checks.txt`) | "Does the answer use only facts that are in the request?" | a second model with its own noise |
 | Do real people like it | nothing in a test | replies, comments, sales | only the real world tells you |
 
-**Deterministic vs. AI.** Everything a rule can decide belongs in code: in the test (`checks.txt`) and in the plugin's script (`scripts/check.py`). That frees the skill text from rules the model may forget, and leaves it with the part only a model can do: the verdict, the wording, keeping the facts. The judge measures that part, but it can be wrong. Before you trust a judge, compare it with your own verdict on about six outputs.
+**Deterministic vs. AI.** Everything a rule can decide belongs in code: in the test (`checks.txt`) and in the check script (`scripts/check.py`). That frees the skill text from rules the model may forget, and leaves it with the part only a model can do: the verdict, the wording, keeping the facts. The judge measures that part, but it can be wrong. Before you trust a judge, compare it with your own verdict on about six outputs.
 
 **Noise.** The same request gives different answers each run. A skill that passes 75% of the time passes three runs in a row only 42% of the time. That's why the default is `--reps 3`. Small differences mean nothing until you add requests or runs.
 
@@ -120,7 +122,7 @@ cp -r template mine
 1. **The skill**: paste it into `mine/SKILL.md`.
 2. **Requests**: three to five real requests in `mine/prompts.csv`. At least one names the skill, one only describes the job, and one is close to its topic but must stay off.
 3. **Rules**: in `mine/checks.txt`, write what your skill promises: code rules for what code can decide, one `judge` question for what it can't. A good source is your own corrections: every output you fixed by hand is a rule or a request.
-4. **Script** (optional): move the code rules your skill should enforce into `mine/scripts/check.py`. Without the folder, the plugin stage is skipped.
+4. **Script** (optional): move the code rules your skill should enforce into `mine/scripts/check.py`. Without the folder, the skill+check stage is skipped.
 5. **Run**: `python3 eval.py mine --cmd "claude -p"`.
 6. **Improve**: change `SKILL.md` or the script, run again, keep the change only if "Runs that pass" went up. `results.tsv` keeps a line per run with a hash of the skill and script. Your agent may edit the skill and the script, never `prompts.csv` or `checks.txt`. An agent that may change the test will make the test easier, not the skill better.
 
@@ -128,7 +130,7 @@ Start small: five requests with an imperfect rule beat no test (Andrew Ng). Grow
 
 ## How it works
 
-The skill and plugin stages give the model `SKILL.md` as a system prompt. They ask it to write `[skill used]` on the first line when it applies the skill, which makes triggering visible on any model. The marker is stripped before the rules run. CLI runs happen in an empty temp folder, so the agent can't read the skill from disk. Rules are only checked on requests where the skill should fire; the stay-off request passes when the skill stays off. The judge uses the same backend as the run. Outputs go to `<folder>/runs/<time>/`, and one summary line per run is appended to `<folder>/results.tsv`.
+The skill and skill+check stages give the model `SKILL.md` as a system prompt. They ask it to write `[skill used]` on the first line when it applies the skill, which makes triggering visible on any model. The marker is stripped before the rules run. CLI runs happen in an empty temp folder, so the agent can't read the skill from disk. Rules are only checked on requests where the skill should fire; the stay-off request passes when the skill stays off. The judge uses the same backend as the run. Outputs go to `<folder>/runs/<time>/`, and one summary line per run is appended to `<folder>/results.tsv`.
 
 This tests the skill text and its script, not your agent's own skill loader. To test the loader too, remove the skill from your agent's skills folder for the baseline run. A disable flag isn't enough: the agent can still find the file.
 

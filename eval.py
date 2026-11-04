@@ -3,8 +3,10 @@
 
   no skill   the bare prompt
   skill      the skill text (SKILL.md) as system prompt
-  plugin     the skill text plus its script (scripts/check.py): the script checks
-             the answer and the model fixes what it reports, at most twice
+  skill+check  the skill text plus its script (scripts/check.py), enforced: the script
+               checks every answer and the model fixes what it reports, at most twice.
+               A script inside a skill runs only if the model decides to call it;
+               here it always runs, like a hook.
 
 Usage:
   python3 eval.py examples/post-writer --cmd "claude -p"   # any CLI that reads the prompt on stdin
@@ -13,7 +15,7 @@ Usage:
 
 A skill folder holds:
   SKILL.md           the instruction text (any skill or system prompt)
-  scripts/check.py   optional: the plugin's deterministic part (text on stdin, findings on stdout, exit 1 if any)
+  scripts/check.py   optional: the skill's deterministic part (text on stdin, findings on stdout, exit 1 if any)
   prompts.csv        the test prompts: id,should_trigger,prompt
   checks.txt         the test rules: code rules, and `judge <question>` for a model judge
 
@@ -35,8 +37,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 MARKER = "[skill used]"
-STAGES = ("none", "skill", "plugin")
-LABEL = {"none": "no skill", "skill": "skill", "plugin": "plugin"}
+STAGES = ("none", "skill", "check")
+LABEL = {"none": "no skill", "skill": "skill", "check": "skill+check"}
 
 SYSTEM = (
     "You can use the skill below. Use it only if the request matches what the skill is for. "
@@ -155,8 +157,8 @@ def main():
             r["used"], r["out"] = strip_marker(call(row["prompt"], system))
             if stage == "none":
                 r["used"] = None
-            # Plugin: the script checks the answer, the model fixes what it finds (at most twice).
-            while stage == "plugin" and r["used"] and r["fixes"] < 2:
+            # Skill+check: the script checks the answer, the model fixes what it finds (at most twice).
+            while stage == "check" and r["used"] and r["fixes"] < 2:
                 findings = run_script(script, r["out"])
                 if not findings:
                     break
@@ -174,7 +176,7 @@ def main():
 
     jobs = [(row, stage, rep) for row in rows for stage in stages for rep in range(args.reps)]
     n_trigger = sum(row["should_trigger"] for row in rows) * len(stages) * args.reps
-    print(f"{len(jobs)} runs + {n_trigger * len(judges)} judge calls + plugin fixes, on {backend} ...", file=sys.stderr)
+    print(f"{len(jobs)} runs + {n_trigger * len(judges)} judge calls + script fixes, on {backend} ...", file=sys.stderr)
     with ThreadPoolExecutor(args.workers) as pool:
         results = list(pool.map(run, jobs))
 

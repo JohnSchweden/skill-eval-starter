@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optional: the plugin part of your skill. Delete this folder to test the skill text only.
+"""Optional: your skill's deterministic part, enforced on every answer. Delete this folder to test the skill text only.
 
 Reads the answer on stdin. Prints one "- finding" line per problem and exits 1 if there are any;
 eval.py hands the findings back to the model to fix (at most twice).
