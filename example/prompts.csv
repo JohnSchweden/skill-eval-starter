@@ -1,4 +1,0 @@
-id,should_trigger,prompt
-names-it,true,Use the commit-message skill: I fixed the null check in the login handler.
-describes-it,true,"I added retry logic to the payment webhook, what should I put in git?"
-stay-off,false,Explain in two sentences what git rebase does.

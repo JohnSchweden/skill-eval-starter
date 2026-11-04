@@ -1,0 +1,5 @@
+id,should_trigger,prompt
+product-launch,true,"Make this sound less like AI: In today's fast-paced world, our new app serves as a testament to innovation. It seamlessly integrates with over 40 tools, showcasing a robust architecture that fosters collaboration. Additionally, it reduces onboarding time by 30%, underscoring its pivotal role in the modern landscape."
+team-update,true,"Rewrite so a human could have written it: This quarter has been nothing short of transformative — a vibrant tapestry of growth. Not only did we ship 12 features, but we also onboarded 3 new customers. It's worth noting that support tickets dropped by half. In conclusion, the future is bright."
+cover-letter,true,"Humanize this paragraph: I am writing to express my keen interest in the Data Analyst position. With 5 years of experience, I have consistently delved into complex datasets, showcasing my crucial ability to foster data-driven decisions. Furthermore, my robust skill set underscores my commitment to excellence."
+stay-off,false,"Translate into German: The meeting is moved to Thursday at 10, same room."

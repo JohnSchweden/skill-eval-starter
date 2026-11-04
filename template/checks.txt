@@ -1,6 +1,12 @@
-# One rule per line. Pick what your skill promises and write it as a rule.
+# The test. Never changes while you improve the skill.
+# One rule per line. Write down what your skill promises.
+#
+# Code rules: checked by code, same answer every time.
 # max_words 200
 # max_chars 280
 # must_match ^Subject:
-# must_not_match —
-# must_not_match #\w+
+# must_not_match [—–]
+# must_not_match (^|\s)#\w
+#
+# Judge rule: a yes/no question for a model, for what no code can decide.
+# judge Does the answer use only facts that are in the request?

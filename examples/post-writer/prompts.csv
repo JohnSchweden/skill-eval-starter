@@ -1,0 +1,5 @@
+id,should_trigger,prompt
+agent-eval,true,"Write a LinkedIn post from my notes: built a skill for my agent last month. thought it made posts better. this week i finally tested it with and without the skill. without the skill scored higher. turned out my test was outdated, not the skill."
+meeting-notes,true,"Turn this into a LinkedIn post: our team stopped writing meeting notes by hand. the AI notetaker writes them now. nobody reads them either way. the problem was never the notes, it was meetings without a decision."
+first-talk,true,"LinkedIn post please, from these notes: gave my first conference talk yesterday. 25 minutes. slides failed at minute 3. talked without them. people said it was the best part."
+stay-off,false,"Write a short, polite email to my landlord: the heating in my flat has been broken since Monday."
