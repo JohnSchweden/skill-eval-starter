@@ -91,6 +91,17 @@ Script sent back              -             -      0% (0/9)   answers check.py s
 
 **Bring back three percentages per example** (Runs that pass): no skill __% · skill __% · skill + check __%
 
+## 5. Improve the humanizer: three rounds
+
+Read the fails, change one line of `SKILL.md` per pattern, run again. About two minutes and 20 cents per round, so it fits into the workshop. In our run the skill went from 73% to 100% in three rounds, and one round broke a request that had been passing.
+
+```bash
+cp -r examples/humanizer my-humanizer
+python3 eval.py my-humanizer --cmd "$AGENT" --reps 5
+```
+
+Steps, our numbers and a prompt that hands the loop to your agent: [docs/improve-the-skill.md](docs/improve-the-skill.md)
+
 ## Homework: test your own skill
 
 Fill in the four files in `mine/` before the run; the template has no test rules yet.
