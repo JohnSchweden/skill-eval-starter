@@ -3,8 +3,9 @@
 
   no skill   the bare prompt
   skill      the skill text (SKILL.md) as system prompt
-  skill+check  the skill text plus its script (scripts/check.py), enforced: the script
-               checks every answer and the model fixes what it reports, at most twice.
+  skill+check  the skill stage's answers put through its script (scripts/check.py): the script
+               checks each answer and the model fixes what it reports, at most twice. Answers
+               the script lets through keep their skill-stage grade (a paired comparison).
                A script inside a skill runs only if the model decides to call it;
                here it always runs, like a hook.
 
@@ -16,7 +17,8 @@ Usage:
 
 A skill folder holds:
   SKILL.md           the instruction text (any skill or system prompt)
-  scripts/check.py   optional: the skill's deterministic part (text on stdin, findings on stdout, exit 1 if any)
+  scripts/check.py   optional: the skill's deterministic part (answer on stdin, request as first argument,
+                     findings on stdout, exit 1 if any)
   prompts.csv        the test prompts: id,should_trigger,prompt
   checks.txt         the test rules: code rules, and `judge <question>` for a model judge
 
@@ -123,8 +125,8 @@ def strip_marker(out):
     return used, (out[len(MARKER):].strip() if used else out)
 
 
-def run_script(script, text):
-    r = subprocess.run([sys.executable, str(script)], input=text, capture_output=True, text=True, encoding="utf-8",
+def run_script(script, text, request):
+    r = subprocess.run([sys.executable, str(script), request], input=text, capture_output=True, text=True, encoding="utf-8",
                        env={**os.environ, "PYTHONUTF8": "1"}, timeout=60)
     if r.returncode and not r.stdout.strip():  # a crashed script must not look like a clean answer
         raise RuntimeError("check.py crashed: " + r.stderr.strip()[-300:])
@@ -161,6 +163,17 @@ def main():
     judge_by = args.judge_cmd or backend
     call = (lambda p, s="": call_cmd(p, args.cmd, s)) if args.cmd else (lambda p, s="": call_api(p, args.model, s))
 
+    def grade(r):
+        r["code"], r["judge"], r["why"] = [], [], []
+        if not r["row"]["should_trigger"]:
+            return
+        r["code"] = code_check(r["out"], code_rules)
+        for q in judges:
+            reply = judge_call(JUDGE.format(prompt=r["row"]["prompt"], answer=r["out"], question=q)).strip()
+            r["why"].append("judge said: " + " ".join(reply.split())[:300])
+            if not reply.lstrip("*`\"' ").upper().startswith("YES"):  # tolerate **YES**
+                r["judge"].append(f"judge: {q}")
+
     def run(job):
         row, stage, rep = job
         r = {"row": row, "stage": stage, "rep": rep, "used": None, "out": "", "code": [], "judge": [], "why": [], "fixes": 0}
@@ -169,29 +182,40 @@ def main():
             r["used"], r["out"] = strip_marker(call(row["prompt"], system))
             if stage == "none":
                 r["used"] = None
-            # Skill+check: the script checks the answer, the model fixes what it finds (at most twice).
-            while stage == "check" and r["used"] and r["fixes"] < 2:
-                findings = run_script(script, r["out"])
-                if not findings:
-                    break
-                r["fixes"] += 1
-                _, r["out"] = strip_marker(call(FIX.format(prompt=row["prompt"], answer=r["out"], findings=findings), system))
-            if row["should_trigger"]:
-                r["code"] = code_check(r["out"], code_rules)
-                for q in judges:
-                    reply = judge_call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip()
-                    r["why"].append("judge said: " + " ".join(reply.split())[:300])
-                    if not reply.lstrip("*`\"' ").upper().startswith("YES"):  # tolerate **YES**
-                        r["judge"].append(f"judge: {q}")
+            grade(r)
         except Exception as e:  # report and keep going; one bad call shouldn't sink the run
             r["error"] = str(e)
         return r
 
-    jobs = [(row, stage, rep) for row in rows for stage in stages for rep in range(args.reps)]
-    n_trigger = sum(row["should_trigger"] for row in rows) * len(stages) * args.reps
-    print(f"{len(jobs)} runs + {n_trigger * len(judges)} judge calls + script fixes, on {backend}, judged by {judge_by} ...", file=sys.stderr)
+    def check(base):
+        # Skill+check takes the skill stage's answer (paired): the script checks it and the model fixes
+        # what it finds, at most twice. An answer the script lets through keeps its grade, so the two
+        # columns differ only where the script sent something back.
+        r = dict(base, stage="check", fixes=0)
+        if "error" in r or not r["used"]:
+            return r
+        try:
+            while r["fixes"] < 2:
+                findings = run_script(script, r["out"], r["row"]["prompt"])
+                if not findings:
+                    break
+                r["fixes"] += 1
+                fix = FIX.format(prompt=r["row"]["prompt"], answer=r["out"], findings=findings)
+                _, r["out"] = strip_marker(call(fix, SYSTEM.format(skill=skill)))
+            if r["fixes"]:
+                grade(r)
+        except Exception as e:
+            r["error"] = str(e)
+        return r
+
+    jobs = [(row, stage, rep) for row in rows for stage in stages if stage != "check" for rep in range(args.reps)]
+    n_trigger = sum(row["should_trigger"] for row in rows) * len(jobs) // len(rows)
+    print(f"{len(jobs)} runs + {n_trigger * len(judges)} judge calls, then script fixes (each re-judged), "
+          f"on {backend}, judged by {judge_by} ...", file=sys.stderr)
     with ThreadPoolExecutor(args.workers) as pool:
         results = list(pool.map(run, jobs))
+        if "check" in stages:
+            results += list(pool.map(check, [r for r in results if r["stage"] == "skill"]))
 
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     outdir = args.folder / "runs" / stamp

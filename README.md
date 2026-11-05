@@ -59,22 +59,22 @@ Each request runs three times per stage: about 70 small calls per example, a min
 |---|---|
 | no skill | just the request |
 | skill | the request + the skill text. The model may follow it. |
-| skill + check | the same, plus a script that checks every answer. The model fixes what it finds. |
+| skill + check | the skill's answers, each checked by a script. The model fixes what it finds; the rest stay as they were. |
 
 ## 4. See what code caught, and the judge
 
 ```
                             no skill         skill   skill+check
-Code checks pass       0% (0/9)     89% (8/9)    100% (9/9)   checked by code
-Judge says yes         0% (0/9)    100% (9/9)    100% (9/9)   checked by a model
-Runs that pass         0% (0/9)     89% (8/9)    100% (9/9)   all checks
+Code checks pass       0% (0/9)    100% (9/9)    100% (9/9)   checked by code
+Judge says yes         0% (0/9)     89% (8/9)     89% (8/9)   checked by a model
+Runs that pass         0% (0/9)     89% (8/9)     89% (8/9)   all checks
 Skill fired right             -  100% (12/12)  100% (12/12)   on when it should be, off when not
 Script sent back              -             -      0% (0/9)   answers check.py sent back for a fix
 ```
 
 - **Code checks**: length, dashes, banned words. Same answer, same result, every time.
 - **Judge**: facts kept, nothing invented. A model decides, so it can be wrong: each output file shows its YES or NO and the reason.
-- **Script sent back**: at 0%, the script changed nothing. Then skill and skill + check differ only by chance.
+- **Script sent back**: skill + check reuses the skill's answers, so the two columns differ only where the script sent something back. At 0%, they are equal: the model already met every rule the script checks.
 - **Open one output** in `examples/<name>/runs/`. A number you haven't looked behind is a guess.
 
 **Bring back three percentages per example** (Runs that pass): no skill __% · skill __% · skill + check __%

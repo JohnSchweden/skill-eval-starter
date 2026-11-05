@@ -13,7 +13,7 @@ Everything a rule can decide belongs in code: in the test (`checks.txt`) and in 
 
 ## Noise
 
-The same request gives different answers each run. A skill that passes 75% of the time passes three runs in a row only 42% of the time. The default is three runs (`--reps 3`). One run (`--reps 1`) is quicker but only shows the shape: in testing, one run gave the humanizer 0% where three runs gave 22%. Small differences mean nothing until you add requests or runs.
+The same request gives different answers each run. A skill that passes 75% of the time passes three runs in a row only 42% of the time. The default is three runs (`--reps 3`). One run (`--reps 1`) is quicker but only shows the shape: in testing, one run gave the humanizer 0% where three runs gave 22%. Small differences mean nothing until you add requests or runs. To see the noise, run the same command twice and compare. The skill+check column doesn't add noise of its own: it reuses the skill's answers, so it moves only where the script sent something back.
 
 ## Five ways the score fools you
 

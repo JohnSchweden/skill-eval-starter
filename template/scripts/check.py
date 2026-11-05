@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Optional: your skill's deterministic part, enforced on every answer. Delete this folder to test the skill text only.
 
-Reads the answer on stdin. Prints one "- finding" line per problem and exits 1 if there are any;
+Reads the answer on stdin; the user's request is the first argument (sys.argv[1]). Prints one "- finding" line per problem and exits 1 if there are any;
 eval.py hands the findings back to the model to fix (at most twice).
 Put here only what code can decide for sure: length, banned words, a required format.
 """
