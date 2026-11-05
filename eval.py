@@ -159,9 +159,9 @@ def main():
     if not args.cmd and not os.environ.get("OPENAI_API_KEY"):
         sys.exit("Set OPENAI_API_KEY (and OPENAI_BASE_URL for a non-OpenAI endpoint), or pass --cmd.")
     backend = args.cmd or args.model
+    call = (lambda p, s="": call_cmd(p, args.cmd, s)) if args.cmd else (lambda p, s="": call_api(p, args.model, s))
     judge_call = (lambda p: call_cmd(p, args.judge_cmd)) if args.judge_cmd else call
     judge_by = args.judge_cmd or backend
-    call = (lambda p, s="": call_cmd(p, args.cmd, s)) if args.cmd else (lambda p, s="": call_api(p, args.model, s))
 
     def grade(r):
         r["code"], r["judge"], r["why"] = [], [], []
@@ -277,6 +277,10 @@ def main():
         print(f"{'Script sent back':<22}" + "".join(f"{pct(tally[s]['sent back']) if s == 'check' else '-':>{w}}" for s in stages)
               + "   answers check.py sent back for a fix; the rest went through unchanged")
     print(f"\nOutputs in {outdir}/")
+    errors = [r["error"] for r in results if "error" in r]
+    if errors:
+        print(f"\n{len(errors)} of {len(results)} runs failed, so they count as fails above. First error:\n  {errors[0]}\n"
+              'Check your line first: echo "Say hi in three words." | sh -c "$AGENT"')
 
     sha = hashlib.sha1((skill + (script.read_text(encoding="utf-8") if script.exists() else "")).encode()).hexdigest()[:7]
     with open(args.folder / "results.tsv", "a", encoding="utf-8") as f:

@@ -14,15 +14,18 @@ Copy the line into a variable, then run `python3 eval.py examples/post-writer --
 | CLI | Line | Tested |
 |---|---|---|
 | Claude Code | `AGENT='claude -p --model haiku --tools "" --setting-sources "" --system-prompt "Answer the request."'` | yes |
-| Codex | `AGENT='codex exec --ephemeral --skip-git-repo-check -'` | no |
-| Gemini CLI | `AGENT='gemini -m flash-lite -p "$(cat)"'` | no |
-| opencode | `AGENT='OPENCODE_DISABLE_PROJECT_CONFIG=1 opencode run --pure -m <provider/model> "$(cat)"'` | no |
+| Codex | `AGENT='codex exec --ephemeral --skip-git-repo-check -'` | flags and error path |
+| Gemini CLI | `AGENT='gemini --skip-trust -m flash-lite -p "$(cat)"'` | flags and error path |
+| opencode | `AGENT='OPENCODE_DISABLE_PROJECT_CONFIG=1 opencode run --pure -m <provider/model> "$(cat)"'` | yes |
 | Cursor | `AGENT='cursor-agent -p --mode ask --output-format text "$(cat)"'` | no |
 | GitHub Copilot | `AGENT='copilot -s --model claude-haiku-4.5 -p "$(cat)"'` | no |
 | Ollama (local) | `AGENT='ollama run llama3.2'` | no |
 | `llm` (any provider via plugins) | `AGENT='llm -m <model> --no-log'` | no |
 
-"No" means the flags come from each tool's docs (November 2026) but nobody has run this line yet. If yours works or needs a fix, open an issue or a PR with the working line.
+"Yes" means a full run of both examples went through this line. "Flags and error path" means every flag exists in the current release and a call with a wrong key fails cleanly (exit code not 0, nothing on stdout), so `eval.py` reports it as an error; no logged-in run yet. "No" means the flags come from each tool's docs (November 2026) but nobody has run this line yet. If yours works or needs a fix, open an issue or a PR with the working line.
+
+- **Gemini CLI** refuses to run in a folder it doesn't trust, and `eval.py` runs every call in a new empty folder. Without `--skip-trust` every call fails.
+- **opencode** without a login: `-m opencode/big-pickle` is a free model that needs no key (tested 5 November 2026; other free models were often unavailable). Add `--workers 1` to the `eval.py` call: parallel opencode calls share one local database and some fail with "database is locked".
 
 To choose a model, add the CLI's model flag (`-m`, `--model`). Pick the cheapest model it offers: the test is about the skill, not the model.
 

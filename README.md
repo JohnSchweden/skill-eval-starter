@@ -28,6 +28,14 @@ Without it, the model under test grades its own answers.
 
 Not on Claude Code? Take your CLI's `AGENT=` line from [docs/backends.md](docs/backends.md) (Codex, Gemini, opencode, Cursor, Copilot, Ollama) or use an API key.
 
+Check your line before the run. You should see only a short answer, no banner or log:
+
+```bash
+echo "Say hi in three words." | sh -c "$AGENT"
+```
+
+If it hangs or asks you to log in, fix that first: the run would only collect errors.
+
 Run the post writer:
 
 ```bash
@@ -76,6 +84,8 @@ Script sent back              -             -      0% (0/9)   answers check.py s
 - **Judge**: facts kept, nothing invented. A model decides, so it can be wrong: each output file shows its YES or NO and the reason.
 - **Script sent back**: skill + check reuses the skill's answers, so the two columns differ only where the script sent something back. At 0%, they are equal: the model already met every rule the script checks.
 - **Open one output** in `examples/<name>/runs/`. A number you haven't looked behind is a guess.
+- **No run yet?** `examples/<name>/sample-run/` holds a finished run (Haiku answers, Sonnet judges, 5 November 2026). Each file starts with pass or FAIL and the judge's reason.
+- **Every column 0%?** Read the line under the table. If runs failed, the problem is your agent line, not the skill.
 
 **Bring back three percentages per example** (Runs that pass): no skill __% · skill __% · skill + check __%
 
