@@ -11,7 +11,7 @@
 Usage:
   python3 eval.py examples/post-writer --cmd "claude -p"   # any CLI that reads the prompt on stdin
   python3 eval.py examples/humanizer --model gpt-4o-mini   # or an OpenAI-compatible API
-  python3 eval.py examples/post-writer --reps 3            # runs per prompt and stage (default 1)
+  python3 eval.py examples/post-writer --reps 1            # runs per prompt and stage (default 3)
 
 A skill folder holds:
   SKILL.md           the instruction text (any skill or system prompt)
@@ -58,7 +58,7 @@ JUDGE = (
 
 def load_checks(path):
     rules = []
-    for n, line in enumerate(path.read_text().splitlines(), 1):
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -107,9 +107,11 @@ def call_cmd(prompt, cmd, system=""):
     text = f"{system}\n\n---\n\n{prompt}" if system else prompt
     # Run in an empty folder so the agent can't pick up project files or the skill itself.
     with tempfile.TemporaryDirectory() as tmp:
-        r = subprocess.run(cmd, shell=True, input=text, capture_output=True, text=True, cwd=tmp, timeout=600)
+        r = subprocess.run(cmd, shell=True, input=text, capture_output=True, text=True, encoding="utf-8", cwd=tmp, timeout=600)
     if r.returncode != 0:
         raise RuntimeError(r.stderr.strip()[:300])
+    if not r.stdout.strip():  # an empty answer would pass most code rules
+        raise RuntimeError("empty answer: " + r.stderr.strip()[:300])
     return r.stdout
 
 
@@ -120,7 +122,10 @@ def strip_marker(out):
 
 
 def run_script(script, text):
-    r = subprocess.run([sys.executable, str(script)], input=text, capture_output=True, text=True, timeout=60)
+    r = subprocess.run([sys.executable, str(script)], input=text, capture_output=True, text=True, encoding="utf-8",
+                       env={**os.environ, "PYTHONUTF8": "1"}, timeout=60)
+    if r.returncode and not r.stdout.strip():  # a crashed script must not look like a clean answer
+        raise RuntimeError("check.py crashed: " + r.stderr.strip()[-300:])
     return r.stdout.strip() if r.returncode else ""
 
 
@@ -129,17 +134,17 @@ def main():
     ap.add_argument("folder", type=Path, help="skill folder (SKILL.md, prompts.csv, checks.txt, optional scripts/check.py)")
     ap.add_argument("--cmd", help='CLI that reads a prompt on stdin, e.g. "claude -p" (lines per CLI: docs/backends.md)')
     ap.add_argument("--model", default=os.environ.get("EVAL_MODEL", "gpt-4o-mini"), help="model for the API backend")
-    ap.add_argument("--reps", type=int, default=1, help="runs per prompt and stage (default 1; use 3 before you decide)")
+    ap.add_argument("--reps", type=int, default=3, help="runs per prompt and stage (default 3; 1 is quicker but noisy)")
     ap.add_argument("--workers", type=int, default=4, help="calls in parallel (default 4)")
     args = ap.parse_args()
 
-    skill = (args.folder / "SKILL.md").read_text()
+    skill = (args.folder / "SKILL.md").read_text(encoding="utf-8")
     script = args.folder / "scripts" / "check.py"
     stages = STAGES if script.exists() else STAGES[:2]
     rules = load_checks(args.folder / "checks.txt")
     code_rules = [r for r in rules if r[0] != "judge"]
     judges = [q for k, q in rules if k == "judge"]
-    with open(args.folder / "prompts.csv", newline="") as f:
+    with open(args.folder / "prompts.csv", newline="", encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
     for row in rows:
         row["should_trigger"] = row["should_trigger"].strip().lower() in ("true", "yes", "1")
@@ -167,7 +172,7 @@ def main():
             if row["should_trigger"]:
                 r["code"] = code_check(r["out"], code_rules)
                 for q in judges:
-                    verdict = call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip().upper()
+                    verdict = call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip().lstrip("*`\"' ").upper()  # tolerate **YES**
                     if not verdict.startswith("YES"):
                         r["judge"].append(f"judge: {q}")
         except Exception as e:  # report and keep going; one bad call shouldn't sink the run
@@ -213,26 +218,27 @@ def main():
                 if r["fixes"]:
                     note += f" (script fixes: {r['fixes']})"
                 ok += passed
-                (outdir / f"{row['id']}-{LABEL[stage].replace(' ', '-')}-{r['rep'] + 1}.md").write_text(f"{note}\n\n---\n\n{r['out']}\n")
+                (outdir / f"{row['id']}-{LABEL[stage].replace(' ', '-')}-{r['rep'] + 1}.md").write_text(f"{note}\n\n---\n\n{r['out']}\n", encoding="utf-8")
             line.append(f"{ok}/{args.reps}")
         table.append(line)
 
     frac = lambda p: f"{p[0]}/{p[1]}" if p[1] else "-"
-    w = 11
+    pct = lambda p: f"{round(100 * p[0] / p[1])}% ({p[0]}/{p[1]})" if p[1] else "-"
+    w = 14
     print(f"\n{args.folder.name}  ·  {backend}  ·  {args.reps} runs per prompt\n")
     print(f"{'prompt':<16}{'skill':<6}" + "".join(f"{LABEL[s]:>{w}}" for s in stages))
     for i, kind, *cells in table:
         print(f"{i:<16}{kind:<6}" + "".join(f"{c:>{w}}" for c in cells))
     print()
-    print(f"{'Code checks pass':<22}" + "".join(f"{frac(tally[s]['code']):>{w}}" for s in stages) + "   checked by code: same answer every time")
+    print(f"{'Code checks pass':<22}" + "".join(f"{pct(tally[s]['code']):>{w}}" for s in stages) + "   checked by code: same answer every time")
     if judges:
-        print(f"{'Judge says yes':<22}" + "".join(f"{frac(tally[s]['judge']):>{w}}" for s in stages) + "   checked by a model: can be wrong")
-    print(f"{'Runs that pass':<22}" + "".join(f"{frac(tally[s]['all']):>{w}}" for s in stages) + "   all checks")
-    print(f"{'Skill fired right':<22}" + "".join(f"{frac(tally[s]['fired']):>{w}}" for s in stages) + "   on when it should be, off when not")
+        print(f"{'Judge says yes':<22}" + "".join(f"{pct(tally[s]['judge']):>{w}}" for s in stages) + "   checked by a model: can be wrong")
+    print(f"{'Runs that pass':<22}" + "".join(f"{pct(tally[s]['all']):>{w}}" for s in stages) + "   all checks")
+    print(f"{'Skill fired right':<22}" + "".join(f"{pct(tally[s]['fired']):>{w}}" for s in stages) + "   on when it should be, off when not")
     print(f"\nOutputs in {outdir}/")
 
-    sha = hashlib.sha1((skill + (script.read_text() if script.exists() else "")).encode()).hexdigest()[:7]
-    with open(args.folder / "results.tsv", "a") as f:
+    sha = hashlib.sha1((skill + (script.read_text(encoding="utf-8") if script.exists() else "")).encode()).hexdigest()[:7]
+    with open(args.folder / "results.tsv", "a", encoding="utf-8") as f:
         if f.tell() == 0:
             f.write("time\tskill_sha\tbackend\treps\t" + "\t".join(f"{s}_pass\t{s}_code\t{s}_judge" for s in STAGES) + "\n")
         cols = []

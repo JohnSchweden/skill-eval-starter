@@ -11,7 +11,7 @@ About 95% of a plain `claude -p` call is Claude Code itself: its system prompt, 
 
 | Run (both examples) | Calls | Tokens with `$AGENT` | Cost |
 |---|---|---|---|
-| `--reps 1` (default) | about 50 | about 70,000 | about $0.02 |
-| `--reps 3` | about 140 | about 195,000 | about $0.06 |
+| `--reps 1` | about 50 | about 70,000 | about $0.02 |
+| `--reps 3` (default) | about 140 | about 195,000 | about $0.06 |
 
 Calls per example: 4 requests × 3 stages × reps answers, plus 3 × 3 × reps judge calls, plus up to 2 script fixes per answer in the skill+check stage.

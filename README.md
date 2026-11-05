@@ -32,7 +32,7 @@ Run the humanizer:
 python3 eval.py examples/humanizer --cmd "$AGENT"
 ```
 
-About 25 small calls per example: a minute or two, about one cent with the line above.
+Each request runs three times per stage: about 70 small calls per example, a minute or two, about 3 cents with the line above.
 
 ## 3. Each runs three ways
 
@@ -45,17 +45,17 @@ About 25 small calls per example: a minute or two, about one cent with the line 
 ## 4. See what code caught, and the judge
 
 ```
-                       no skill      skill skill+check
-Code checks pass            1/3        3/3        3/3   checked by code
-Judge says yes              0/3        3/3        3/3   checked by a model
-Runs that pass              0/3        3/3        3/3   all checks
+                            no skill         skill   skill+check
+Code checks pass       0% (0/9)    100% (9/9)    100% (9/9)   checked by code
+Judge says yes        11% (1/9)     89% (8/9)    100% (9/9)   checked by a model
+Runs that pass         0% (0/9)     89% (8/9)    100% (9/9)   all checks
 ```
 
 - **Code checks**: length, dashes, banned words. The script moves this number.
 - **Judge**: facts kept, nothing invented. Only the skill text moves this number.
 - **Open one output** in `examples/<name>/runs/`. A number you haven't looked behind is a guess.
 
-**Bring back three numbers per example:** no skill __ · skill __ · skill + check __
+**Bring back three percentages per example** (Runs that pass): no skill __% · skill __% · skill + check __%
 
 ## Homework: test your own skill
 

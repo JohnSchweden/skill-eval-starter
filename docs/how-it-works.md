@@ -48,19 +48,19 @@ judge Does the answer use only facts that are in the request?
 
 ## Example output
 
-One run per request (`--reps 1`) of the post writer on `claude -p --model haiku`:
+Three runs per request (the default) of the post writer on `claude -p --model haiku`, 5 November 2026:
 
 ```
-prompt          skill    no skill      skill skill+check
-agent-eval      on            0/1        1/1        1/1
-meeting-notes   on            0/1        1/1        1/1
-first-talk      on            0/1        1/1        1/1
-stay-off        off           1/1        1/1        1/1
+prompt          skill        no skill         skill   skill+check
+agent-eval      on               0/3           2/3           3/3
+meeting-notes   on               0/3           3/3           3/3
+first-talk      on               0/3           3/3           3/3
+stay-off        off              3/3           3/3           3/3
 
-Code checks pass              1/3        3/3        3/3   checked by code: same answer every time
-Judge says yes                0/3        3/3        3/3   checked by a model: can be wrong
-Runs that pass                0/3        3/3        3/3   all checks
-Skill fired right               -        4/4        4/4   on when it should be, off when not
+Code checks pass            0% (0/9)    100% (9/9)    100% (9/9)   checked by code: same answer every time
+Judge says yes             11% (1/9)     89% (8/9)    100% (9/9)   checked by a model: can be wrong
+Runs that pass              0% (0/9)     89% (8/9)    100% (9/9)   all checks
+Skill fired right                  -  100% (12/12)  100% (12/12)   on when it should be, off when not
 ```
 
 ## What this does not test
