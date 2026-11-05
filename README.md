@@ -57,9 +57,11 @@ python eval.py examples/post-writer
 python eval.py examples/humanizer
 ```
 
+The check line above needs a Unix shell. In PowerShell, run `python eval.py examples/post-writer --reps 1` first instead: if your line is wrong, the end of the output says so. WSL works like macOS and Linux.
+
 Without `--cmd`, eval.py takes the agent from the `AGENT` variable, and without `--judge-cmd` the judge from `JUDGE`. That way PowerShell never has to pass the quotes on.
 
-Each request runs three times per stage: about 70 small calls per example, a minute or two, about 3 cents with the line above.
+Each request runs three times per stage: about 45 small calls per example (24 answers, 18 judge calls, a few script fixes), a minute or two, about 3 cents with the line above.
 
 ## 3. Each runs three ways
 

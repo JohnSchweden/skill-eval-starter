@@ -35,6 +35,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -103,8 +104,11 @@ def call_api(prompt, model, system=""):
         data=json.dumps({"model": model, "messages": messages}).encode(),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY', '')}"},
     )
-    with urllib.request.urlopen(req, timeout=300) as r:
-        return json.load(r)["choices"][0]["message"]["content"]
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            return json.load(r)["choices"][0]["message"]["content"]
+    except urllib.error.HTTPError as e:  # the body says why (wrong model name, bad key)
+        raise RuntimeError(f"{e} {e.read().decode('utf-8', 'replace')[:300]}") from None
 
 
 def call_cmd(prompt, cmd, system=""):
@@ -120,9 +124,10 @@ def call_cmd(prompt, cmd, system=""):
 
 
 def strip_marker(out):
+    # Accept the marker with markdown around it (**[skill used]**, `[skill used]`): some models format it.
     out = out.strip()
-    used = out.startswith(MARKER)
-    return used, (out[len(MARKER):].strip() if used else out)
+    m = re.match(r"[*_`\s]*" + re.escape(MARKER) + r"[*_`]*", out)
+    return bool(m), (out[m.end():].strip() if m else out)
 
 
 def run_script(script, text, request):
@@ -280,7 +285,8 @@ def main():
     errors = [r["error"] for r in results if "error" in r]
     if errors:
         print(f"\n{len(errors)} of {len(results)} runs failed, so they count as fails above. First error:\n  {errors[0]}\n"
-              'Check your line first: echo "Say hi in three words." | sh -c "$AGENT"')
+              + ('Check your line first: echo "Say hi in three words." | sh -c "$AGENT"' if args.cmd else
+                 "Check OPENAI_API_KEY, OPENAI_BASE_URL and --model (OpenRouter wants names like openai/gpt-4o-mini)."))
 
     sha = hashlib.sha1((skill + (script.read_text(encoding="utf-8") if script.exists() else "")).encode()).hexdigest()[:7]
     with open(args.folder / "results.tsv", "a", encoding="utf-8") as f:

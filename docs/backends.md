@@ -26,6 +26,7 @@ Copy the line into a variable, then run `python3 eval.py examples/post-writer --
 
 - **Gemini CLI** refuses to run in a folder it doesn't trust, and `eval.py` runs every call in a new empty folder. Without `--skip-trust` every call fails.
 - **opencode** without a login: `-m opencode/big-pickle` is a free model that needs no key (tested 5 November 2026; other free models were often unavailable). Add `--workers 1` to the `eval.py` call: parallel opencode calls share one local database and some fail with "database is locked".
+- **Hermes, OpenClaw** and other long-running agents: no tested line. Use the API route below with the provider key your agent already uses (OpenRouter, OpenAI, a local Ollama). It tests the skill text on the same model, without the agent around it.
 
 To choose a model, add the CLI's model flag (`-m`, `--model`). Pick the cheapest model it offers: the test is about the skill, not the model.
 
@@ -47,7 +48,7 @@ For the cleanest baseline, skip the agent and call a model directly. Any OpenAI-
 ```bash
 export OPENAI_API_KEY=...
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1   # leave unset for OpenAI
-python3 eval.py examples/post-writer --model gpt-4o-mini
+python3 eval.py examples/post-writer --model openai/gpt-4o-mini   # plain gpt-4o-mini on OpenAI itself
 ```
 
 OpenRouter reaches most providers with one key. Ollama (`http://localhost:11434/v1`) and LM Studio run locally; Anthropic and Gemini also offer OpenAI-compatible endpoints.
