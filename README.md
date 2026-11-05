@@ -93,7 +93,7 @@ Steps: [docs/your-own-skill.md](docs/your-own-skill.md)
 ## More
 
 - [How it works](docs/how-it-works.md): the files, test vs. eval, skill vs. plugin, sources
-- [What to trust](docs/measuring.md): code vs. judge, noise, four traps
+- [What to trust](docs/measuring.md): code vs. judge, noise, five traps
 - [Other CLIs and APIs](docs/backends.md)
 - [Cost](docs/cost.md)
 
