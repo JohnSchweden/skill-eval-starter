@@ -43,7 +43,7 @@ judge Does the answer use only facts that are in the request?
 1. The skill and skill+check stages give the model `SKILL.md` as a system prompt. They ask it to write `[skill used]` on the first line when it applies the skill, which makes triggering visible on any model. The marker is stripped before the rules run.
 2. CLI runs happen in an empty temp folder, so the agent can't read the skill from disk.
 3. Rules are only checked on requests where the skill should fire. The stay-off request passes when the skill stays off.
-4. The judge uses the same backend as the run, so a model grades its own answers. It replies YES or NO and one line of reasons; the reason goes into the output file.
+4. The judge uses `--judge-cmd` (or the `JUDGE` variable) if set, else the same backend as the run, so a model grades its own answers. A stronger judge than the model under test gives fairer verdicts. It replies YES or NO and one line of reasons; the reason goes into the output file.
 5. Every answer goes to `<folder>/runs/<time>/`, each file starting with its verdict and the judge's reason. One summary line per run is appended to `<folder>/results.tsv`, with a hash of the skill and script, so you can see which version scored what.
 
 ## Example output

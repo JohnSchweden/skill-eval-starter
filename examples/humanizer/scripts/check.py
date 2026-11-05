@@ -9,7 +9,7 @@ import sys
 
 AI_WORDS = (r"\b(testament|showcas\w*|underscor\w*|pivotal|crucial|delv\w*|tapestry|vibrant|seamless\w*|"
             r"robust|landscape|foster\w*|additionally|furthermore)\b")
-PHRASES = r"(?i)(in today's fast-paced world|in conclusion|it's worth noting|it is worth noting|^overall,|not only\b.*\bbut also)"
+PHRASES = r"(?i)(in today's fast-paced world|in conclusion|it's worth noting|it is worth noting|^overall,|the future (is|looks) bright|not only\b.*\bbut also)"
 
 text = sys.stdin.read().strip()
 findings = []

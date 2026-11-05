@@ -17,4 +17,4 @@ Your agent may edit the skill and the script, never `prompts.csv` or `checks.txt
 
 Start small: five requests with an imperfect rule beat no test (Andrew Ng). Grow toward 10 to 20 from real failures (OpenAI).
 
-Before you trust the numbers, read [measuring.md](measuring.md): what code can check, what needs a judge, and three ways the score fools you.
+Before you trust the numbers, read [measuring.md](measuring.md): what code can check, what needs a judge, and four ways the score fools you.

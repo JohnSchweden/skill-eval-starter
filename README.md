@@ -18,6 +18,14 @@ Set your agent (Claude Code):
 AGENT='claude -p --model haiku --tools "" --setting-sources "" --system-prompt "Answer the request."'
 ```
 
+Let a stronger model grade the answers (optional, roughly 10 cents more per example):
+
+```bash
+export JUDGE='claude -p --model sonnet --tools "" --setting-sources "" --system-prompt "Answer the request."'
+```
+
+Without it, the model under test grades its own answers.
+
 Not on Claude Code? Take your CLI's `AGENT=` line from [docs/backends.md](docs/backends.md) (Codex, Gemini, opencode, Cursor, Copilot, Ollama) or use an API key.
 
 Run the post writer:
@@ -36,11 +44,12 @@ On Windows, use PowerShell and `python` (not tested on Windows yet):
 
 ```powershell
 $env:AGENT = 'claude -p --model haiku --tools "" --setting-sources "" --system-prompt "Answer the request."'
+$env:JUDGE = 'claude -p --model sonnet --tools "" --setting-sources "" --system-prompt "Answer the request."'
 python eval.py examples/post-writer
 python eval.py examples/humanizer
 ```
 
-Without `--cmd`, eval.py takes the agent from the `AGENT` variable. That way PowerShell never has to pass the quotes on.
+Without `--cmd`, eval.py takes the agent from the `AGENT` variable, and without `--judge-cmd` the judge from `JUDGE`. That way PowerShell never has to pass the quotes on.
 
 Each request runs three times per stage: about 70 small calls per example, a minute or two, about 3 cents with the line above.
 
@@ -84,7 +93,7 @@ Steps: [docs/your-own-skill.md](docs/your-own-skill.md)
 ## More
 
 - [How it works](docs/how-it-works.md): the files, test vs. eval, skill vs. plugin, sources
-- [What to trust](docs/measuring.md): code vs. judge, noise, three traps
+- [What to trust](docs/measuring.md): code vs. judge, noise, four traps
 - [Other CLIs and APIs](docs/backends.md)
 - [Cost](docs/cost.md)
 

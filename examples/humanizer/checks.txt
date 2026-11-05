@@ -1,7 +1,7 @@
 # The test. Never changes while you improve the skill.
 # Code rules: checked by code, same answer every time.
 must_not_match (?i)\b(testament|showcas\w*|underscor\w*|pivotal|crucial|delv\w*|tapestry|vibrant|seamless\w*|robust|landscape|foster\w*|additionally|furthermore)\b
-must_not_match (?i)(in today's fast-paced world|in conclusion|it's worth noting|it is worth noting|not only\b.*\bbut also)
+must_not_match (?i)(in today's fast-paced world|in conclusion|it's worth noting|it is worth noting|the future (is|looks) bright|not only\b.*\bbut also)
 must_not_match [—–]
 # Judge rule: checked by a model, because no code can decide it.
 judge Does the answer keep every number and name from the original (in digits or words) and add no new number, name or claim? Rewording and dropping vague praise or empty phrases is fine.

@@ -136,6 +136,8 @@ def main():
     ap.add_argument("folder", type=Path, help="skill folder (SKILL.md, prompts.csv, checks.txt, optional scripts/check.py)")
     ap.add_argument("--cmd", default=os.environ.get("AGENT"),
                     help='CLI that reads a prompt on stdin, e.g. "claude -p" (default: the AGENT variable; lines per CLI: docs/backends.md)')
+    ap.add_argument("--judge-cmd", default=os.environ.get("JUDGE"),
+                    help="CLI for the judge, e.g. a stronger model than the one under test (default: the JUDGE variable, else the same as --cmd)")
     ap.add_argument("--model", default=os.environ.get("EVAL_MODEL", "gpt-4o-mini"), help="model for the API backend")
     ap.add_argument("--reps", type=int, default=3, help="runs per prompt and stage (default 3; 1 is quicker but noisy)")
     ap.add_argument("--workers", type=int, default=4, help="calls in parallel (default 4)")
@@ -155,6 +157,8 @@ def main():
     if not args.cmd and not os.environ.get("OPENAI_API_KEY"):
         sys.exit("Set OPENAI_API_KEY (and OPENAI_BASE_URL for a non-OpenAI endpoint), or pass --cmd.")
     backend = args.cmd or args.model
+    judge_call = (lambda p: call_cmd(p, args.judge_cmd)) if args.judge_cmd else call
+    judge_by = args.judge_cmd or backend
     call = (lambda p, s="": call_cmd(p, args.cmd, s)) if args.cmd else (lambda p, s="": call_api(p, args.model, s))
 
     def run(job):
@@ -175,7 +179,7 @@ def main():
             if row["should_trigger"]:
                 r["code"] = code_check(r["out"], code_rules)
                 for q in judges:
-                    reply = call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip()
+                    reply = judge_call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip()
                     r["why"].append("judge said: " + " ".join(reply.split())[:300])
                     if not reply.lstrip("*`\"' ").upper().startswith("YES"):  # tolerate **YES**
                         r["judge"].append(f"judge: {q}")
@@ -185,7 +189,7 @@ def main():
 
     jobs = [(row, stage, rep) for row in rows for stage in stages for rep in range(args.reps)]
     n_trigger = sum(row["should_trigger"] for row in rows) * len(stages) * args.reps
-    print(f"{len(jobs)} runs + {n_trigger * len(judges)} judge calls + script fixes, on {backend} ...", file=sys.stderr)
+    print(f"{len(jobs)} runs + {n_trigger * len(judges)} judge calls + script fixes, on {backend}, judged by {judge_by} ...", file=sys.stderr)
     with ThreadPoolExecutor(args.workers) as pool:
         results = list(pool.map(run, jobs))
 
@@ -234,7 +238,8 @@ def main():
     frac = lambda p: f"{p[0]}/{p[1]}" if p[1] else "-"
     pct = lambda p: f"{round(100 * p[0] / p[1])}% ({p[0]}/{p[1]})" if p[1] else "-"
     w = 14
-    print(f"\n{args.folder.name}  ·  {backend}  ·  {args.reps} runs per prompt\n")
+    print(f"\n{args.folder.name}  ·  {backend}  ·  {args.reps} runs per prompt")
+    print(f"judge: {judge_by}\n")
     print(f"{'prompt':<16}{'skill':<6}" + "".join(f"{LABEL[s]:>{w}}" for s in stages))
     for i, kind, *cells in table:
         print(f"{i:<16}{kind:<6}" + "".join(f"{c:>{w}}" for c in cells))

@@ -15,8 +15,9 @@ Everything a rule can decide belongs in code: in the test (`checks.txt`) and in 
 
 The same request gives different answers each run. A skill that passes 75% of the time passes three runs in a row only 42% of the time. The default is three runs (`--reps 3`). One run (`--reps 1`) is quicker but only shows the shape: in testing, one run gave the humanizer 0% where three runs gave 22%. Small differences mean nothing until you add requests or runs.
 
-## Three ways the score fools you
+## Four ways the score fools you
 
 - **No baseline.** Skill and no skill both pass: the skill adds nothing, or the test is too easy.
 - **The test is wrong.** A rule the skill no longer promises makes a good skill lose. Example from building this repo: the humanizer judge first asked "does the answer keep every fact *and claim*?". The skill is told to cut empty claims like "the future looks bright", so the judge failed every good rewrite. Read one failing output and ask: is the skill wrong, or the test?
+- **The skill makes it worse.** The same conflict sat in the skill text: "keep every fact and claim". The model obeyed, kept "the future is bright" and reworded it to "the future looks bright". Without the skill, it dropped the line. No check caught it until an outside AI-writing detector scanned the outputs. If no skill beats skill on a pattern, read the skill text for the line that asks for it.
 - **One run is noise.** See above.
