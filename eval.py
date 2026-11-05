@@ -10,6 +10,7 @@
 
 Usage:
   python3 eval.py examples/post-writer --cmd "claude -p"   # any CLI that reads the prompt on stdin
+  AGENT="claude -p" python3 eval.py examples/post-writer   # the same; --cmd defaults to $AGENT
   python3 eval.py examples/humanizer --model gpt-4o-mini   # or an OpenAI-compatible API
   python3 eval.py examples/post-writer --reps 1            # runs per prompt and stage (default 3)
 
@@ -51,8 +52,9 @@ FIX = (
     f"Write the corrected answer. Start with {MARKER} on the first line, then only the answer."
 )
 JUDGE = (
-    "You are grading an answer. Reply with YES or NO only.\n\n"
-    "Request:\n<request>\n{prompt}\n</request>\n\nAnswer:\n<answer>\n{answer}\n</answer>\n\nQuestion: {question}"
+    "You are grading an answer.\n\n"
+    "Request:\n<request>\n{prompt}\n</request>\n\nAnswer:\n<answer>\n{answer}\n</answer>\n\nQuestion: {question}\n\n"
+    "On the first line write only YES or NO. On the second line give one short reason and quote the words that decide it."
 )
 
 
@@ -72,7 +74,7 @@ def load_checks(path):
         else:
             sys.exit(f"{path}:{n}: unknown rule '{kind}' (use max_words, max_chars, must_match, must_not_match, judge)")
     if not rules:
-        sys.exit(f"{path}: no rules")
+        sys.exit(f"{path}: no rules yet. Write your test rules first (see docs/your-own-skill.md).")
     return rules
 
 
@@ -132,7 +134,8 @@ def run_script(script, text):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("folder", type=Path, help="skill folder (SKILL.md, prompts.csv, checks.txt, optional scripts/check.py)")
-    ap.add_argument("--cmd", help='CLI that reads a prompt on stdin, e.g. "claude -p" (lines per CLI: docs/backends.md)')
+    ap.add_argument("--cmd", default=os.environ.get("AGENT"),
+                    help='CLI that reads a prompt on stdin, e.g. "claude -p" (default: the AGENT variable; lines per CLI: docs/backends.md)')
     ap.add_argument("--model", default=os.environ.get("EVAL_MODEL", "gpt-4o-mini"), help="model for the API backend")
     ap.add_argument("--reps", type=int, default=3, help="runs per prompt and stage (default 3; 1 is quicker but noisy)")
     ap.add_argument("--workers", type=int, default=4, help="calls in parallel (default 4)")
@@ -156,7 +159,7 @@ def main():
 
     def run(job):
         row, stage, rep = job
-        r = {"row": row, "stage": stage, "rep": rep, "used": None, "out": "", "code": [], "judge": [], "fixes": 0}
+        r = {"row": row, "stage": stage, "rep": rep, "used": None, "out": "", "code": [], "judge": [], "why": [], "fixes": 0}
         try:
             system = SYSTEM.format(skill=skill) if stage != "none" else ""
             r["used"], r["out"] = strip_marker(call(row["prompt"], system))
@@ -172,8 +175,9 @@ def main():
             if row["should_trigger"]:
                 r["code"] = code_check(r["out"], code_rules)
                 for q in judges:
-                    verdict = call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip().lstrip("*`\"' ").upper()  # tolerate **YES**
-                    if not verdict.startswith("YES"):
+                    reply = call(JUDGE.format(prompt=row["prompt"], answer=r["out"], question=q)).strip()
+                    r["why"].append("judge said: " + " ".join(reply.split())[:300])
+                    if not reply.lstrip("*`\"' ").upper().startswith("YES"):  # tolerate **YES**
                         r["judge"].append(f"judge: {q}")
         except Exception as e:  # report and keep going; one bad call shouldn't sink the run
             r["error"] = str(e)
@@ -187,10 +191,10 @@ def main():
 
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     outdir = args.folder / "runs" / stamp
-    outdir.mkdir(parents=True)
+    outdir.mkdir(parents=True, exist_ok=True)
 
     # Score. Rows where the skill should fire: code checks and judge. Stay-off rows: the skill must not fire.
-    tally = {s: {"code": [0, 0], "judge": [0, 0], "all": [0, 0], "fired": [0, 0]} for s in stages}
+    tally = {s: {"code": [0, 0], "judge": [0, 0], "all": [0, 0], "fired": [0, 0], "sent back": [0, 0]} for s in stages}
     table = []
     for row in rows:
         line = [row["id"], "on" if row["should_trigger"] else "off"]
@@ -215,11 +219,16 @@ def main():
                     t["all"][0] += passed; t["all"][1] += 1
                 if stage != "none" and r["used"] is not None:
                     t["fired"][0] += r["used"] == row["should_trigger"]; t["fired"][1] += 1
+                if stage == "check" and row["should_trigger"] and r["used"]:
+                    t["sent back"][0] += bool(r["fixes"]); t["sent back"][1] += 1
                 if r["fixes"]:
                     note += f" (script fixes: {r['fixes']})"
+                if r["why"]:
+                    note += "\n" + "\n".join(r["why"])
                 ok += passed
                 (outdir / f"{row['id']}-{LABEL[stage].replace(' ', '-')}-{r['rep'] + 1}.md").write_text(f"{note}\n\n---\n\n{r['out']}\n", encoding="utf-8")
-            line.append(f"{ok}/{args.reps}")
+            # Without the skill nothing can fire, so a stay-off row has no result in that column.
+            line.append("-" if stage == "none" and not row["should_trigger"] else f"{ok}/{args.reps}")
         table.append(line)
 
     frac = lambda p: f"{p[0]}/{p[1]}" if p[1] else "-"
@@ -235,6 +244,9 @@ def main():
         print(f"{'Judge says yes':<22}" + "".join(f"{pct(tally[s]['judge']):>{w}}" for s in stages) + "   checked by a model: can be wrong")
     print(f"{'Runs that pass':<22}" + "".join(f"{pct(tally[s]['all']):>{w}}" for s in stages) + "   all checks")
     print(f"{'Skill fired right':<22}" + "".join(f"{pct(tally[s]['fired']):>{w}}" for s in stages) + "   on when it should be, off when not")
+    if "check" in stages:
+        print(f"{'Script sent back':<22}" + "".join(f"{pct(tally[s]['sent back']) if s == 'check' else '-':>{w}}" for s in stages)
+              + "   answers check.py sent back for a fix; the rest went through unchanged")
     print(f"\nOutputs in {outdir}/")
 
     sha = hashlib.sha1((skill + (script.read_text(encoding="utf-8") if script.exists() else "")).encode()).hexdigest()[:7]

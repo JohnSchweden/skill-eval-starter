@@ -6,4 +6,4 @@ must_not_match (^|\s)#\w
 must_not_match (?i)\b(game[- ]changer|leverag\w*|unlock\w*|revolutioni[sz]\w*|synerg\w*|landscape|journey|delv\w*)\b
 must_not_match \?\s*\Z
 # Judge rule: checked by a model, because no code can decide it.
-judge Does the answer use only facts that are in the request, with no added numbers, names, results or events?
+judge Does the answer use only facts that are in the request, with no added numbers, names, results or events? Rewording is fine.

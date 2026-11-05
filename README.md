@@ -32,6 +32,16 @@ Run the humanizer:
 python3 eval.py examples/humanizer --cmd "$AGENT"
 ```
 
+On Windows, use PowerShell and `python` (not tested on Windows yet):
+
+```powershell
+$env:AGENT = 'claude -p --model haiku --tools "" --setting-sources "" --system-prompt "Answer the request."'
+python eval.py examples/post-writer
+python eval.py examples/humanizer
+```
+
+Without `--cmd`, eval.py takes the agent from the `AGENT` variable. That way PowerShell never has to pass the quotes on.
+
 Each request runs three times per stage: about 70 small calls per example, a minute or two, about 3 cents with the line above.
 
 ## 3. Each runs three ways
@@ -46,18 +56,23 @@ Each request runs three times per stage: about 70 small calls per example, a min
 
 ```
                             no skill         skill   skill+check
-Code checks pass       0% (0/9)    100% (9/9)    100% (9/9)   checked by code
-Judge says yes        11% (1/9)     89% (8/9)    100% (9/9)   checked by a model
+Code checks pass       0% (0/9)     89% (8/9)    100% (9/9)   checked by code
+Judge says yes         0% (0/9)    100% (9/9)    100% (9/9)   checked by a model
 Runs that pass         0% (0/9)     89% (8/9)    100% (9/9)   all checks
+Skill fired right             -  100% (12/12)  100% (12/12)   on when it should be, off when not
+Script sent back              -             -      0% (0/9)   answers check.py sent back for a fix
 ```
 
-- **Code checks**: length, dashes, banned words. The script moves this number.
-- **Judge**: facts kept, nothing invented. Only the skill text moves this number.
+- **Code checks**: length, dashes, banned words. Same answer, same result, every time.
+- **Judge**: facts kept, nothing invented. A model decides, so it can be wrong: each output file shows its YES or NO and the reason.
+- **Script sent back**: at 0%, the script changed nothing. Then skill and skill + check differ only by chance.
 - **Open one output** in `examples/<name>/runs/`. A number you haven't looked behind is a guess.
 
 **Bring back three percentages per example** (Runs that pass): no skill __% · skill __% · skill + check __%
 
 ## Homework: test your own skill
+
+Fill in the four files in `mine/` before the run; the template has no test rules yet.
 
 ```bash
 cp -r template mine

@@ -9,7 +9,7 @@
 
 ## Deterministic vs. AI
 
-Everything a rule can decide belongs in code: in the test (`checks.txt`) and in the check script (`scripts/check.py`). That frees the skill text from rules the model may forget, and leaves it with the part only a model can do: the verdict, the wording, keeping the facts. The judge measures that part, but it can be wrong. Before you trust a judge, compare it with your own verdict on about six outputs.
+Everything a rule can decide belongs in code: in the test (`checks.txt`) and in the check script (`scripts/check.py`). That frees the skill text from rules the model may forget, and leaves it with the part only a model can do: the verdict, the wording, keeping the facts. The judge measures that part, but it can be wrong. Before you trust a judge, compare it with your own verdict on about six outputs. Each output file shows the judge's YES or NO and its reason. Example from the humanizer: the cover letter says "foster data-driven decisions", the rewrite says "help teams make better decisions", and the judge fails it for adding "teams". If you agree, fix the skill. If you don't, fix the question.
 
 ## Noise
 

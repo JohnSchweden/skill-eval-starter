@@ -43,8 +43,8 @@ judge Does the answer use only facts that are in the request?
 1. The skill and skill+check stages give the model `SKILL.md` as a system prompt. They ask it to write `[skill used]` on the first line when it applies the skill, which makes triggering visible on any model. The marker is stripped before the rules run.
 2. CLI runs happen in an empty temp folder, so the agent can't read the skill from disk.
 3. Rules are only checked on requests where the skill should fire. The stay-off request passes when the skill stays off.
-4. The judge uses the same backend as the run.
-5. Every answer goes to `<folder>/runs/<time>/`, each file starting with its verdict. One summary line per run is appended to `<folder>/results.tsv`, with a hash of the skill and script, so you can see which version scored what.
+4. The judge uses the same backend as the run, so a model grades its own answers. It replies YES or NO and one line of reasons; the reason goes into the output file.
+5. Every answer goes to `<folder>/runs/<time>/`, each file starting with its verdict and the judge's reason. One summary line per run is appended to `<folder>/results.tsv`, with a hash of the skill and script, so you can see which version scored what.
 
 ## Example output
 
@@ -52,16 +52,19 @@ Three runs per request (the default) of the post writer on `claude -p --model ha
 
 ```
 prompt          skill        no skill         skill   skill+check
-agent-eval      on               0/3           2/3           3/3
-meeting-notes   on               0/3           3/3           3/3
+agent-eval      on               0/3           3/3           3/3
+meeting-notes   on               0/3           2/3           3/3
 first-talk      on               0/3           3/3           3/3
-stay-off        off              3/3           3/3           3/3
+stay-off        off                -           3/3           3/3
 
-Code checks pass            0% (0/9)    100% (9/9)    100% (9/9)   checked by code: same answer every time
-Judge says yes             11% (1/9)     89% (8/9)    100% (9/9)   checked by a model: can be wrong
+Code checks pass            0% (0/9)     89% (8/9)    100% (9/9)   checked by code: same answer every time
+Judge says yes              0% (0/9)    100% (9/9)    100% (9/9)   checked by a model: can be wrong
 Runs that pass              0% (0/9)     89% (8/9)    100% (9/9)   all checks
 Skill fired right                  -  100% (12/12)  100% (12/12)   on when it should be, off when not
+Script sent back                   -             -      0% (0/9)   answers check.py sent back for a fix; the rest went through unchanged
 ```
+
+The stay-off row has no no-skill result: without a skill, nothing can fire. The script sent nothing back, so the one extra pass in skill+check is chance, not the script.
 
 ## What this does not test
 
