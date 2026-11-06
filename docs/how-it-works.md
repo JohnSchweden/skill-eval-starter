@@ -33,10 +33,13 @@ Rules in `checks.txt`, one per line:
 ```
 max_words 120
 max_chars 1300
+max_utf16 3000
 must_match ^[A-Z]
 must_not_match [—–]
 judge Does the answer use only facts that are in the request?
 ```
+
+`max_utf16` counts the way LinkedIn, X and most web counters do: a 𝗯𝗼𝗹𝗱 or 𝘪𝘵𝘢𝘭𝘪𝘤 Unicode letter or an emoji costs 2, so a styled post can pass `max_chars` and still be cut off.
 
 ## What the runner does
 

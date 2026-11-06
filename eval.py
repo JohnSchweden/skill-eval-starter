@@ -68,14 +68,14 @@ def load_checks(path):
         if not line or line.startswith("#"):
             continue
         kind, _, arg = line.partition(" ")
-        if kind in ("max_words", "max_chars"):
+        if kind in ("max_words", "max_chars", "max_utf16"):
             rules.append((kind, int(arg)))
         elif kind in ("must_match", "must_not_match"):
             rules.append((kind, re.compile(arg, re.MULTILINE)))
         elif kind == "judge":
             rules.append((kind, arg))
         else:
-            sys.exit(f"{path}:{n}: unknown rule '{kind}' (use max_words, max_chars, must_match, must_not_match, judge)")
+            sys.exit(f"{path}:{n}: unknown rule '{kind}' (use max_words, max_chars, max_utf16, must_match, must_not_match, judge)")
     if not rules:
         sys.exit(f"{path}: no rules yet. Write your test rules first (see docs/your-own-skill.md).")
     return rules
@@ -89,6 +89,8 @@ def code_check(text, rules):
             failed.append(f"{kind} {arg} (got {len(text.split())})")
         elif kind == "max_chars" and len(text) > arg:
             failed.append(f"{kind} {arg} (got {len(text)})")
+        elif kind == "max_utf16" and len(text.encode("utf-16-le")) // 2 > arg:  # how LinkedIn, X and most web counters count
+            failed.append(f"{kind} {arg} (got {len(text.encode('utf-16-le')) // 2})")
         elif kind == "must_match" and not arg.search(text):
             failed.append(f"{kind} {arg.pattern}")
         elif kind == "must_not_match" and arg.search(text):
@@ -179,6 +181,18 @@ def main():
             if not reply.lstrip("*`\"' ").upper().startswith("YES"):  # tolerate **YES**
                 r["judge"].append(f"judge: {q}")
 
+    done = [0]
+
+    def progress(r):  # one line per graded answer, so a slow run doesn't look like a hang
+        done[0] += 1
+        if "error" in r:
+            ok = "ERROR " + r["error"][:80]
+        elif not r["row"]["should_trigger"]:
+            ok = "-" if r["stage"] == "none" else "FIRED (should stay off)" if r["used"] else "stayed off"
+        else:
+            ok = "pass" if not r["code"] and not r["judge"] else "FAIL"
+        print(f"  [{done[0]}] {r['row']['id']} {LABEL[r['stage']]} #{r['rep'] + 1}: {ok}", file=sys.stderr, flush=True)
+
     def run(job):
         row, stage, rep = job
         r = {"row": row, "stage": stage, "rep": rep, "used": None, "out": "", "code": [], "judge": [], "why": [], "fixes": 0}
@@ -188,8 +202,10 @@ def main():
             if stage == "none":
                 r["used"] = None
             grade(r)
+            progress(r)
         except Exception as e:  # report and keep going; one bad call shouldn't sink the run
             r["error"] = str(e)
+            progress(r)
         return r
 
     def check(base):
@@ -209,6 +225,7 @@ def main():
                 _, r["out"] = strip_marker(call(fix, SYSTEM.format(skill=skill)))
             if r["fixes"]:
                 grade(r)
+                progress(r)
         except Exception as e:
             r["error"] = str(e)
         return r
